@@ -1,3 +1,4 @@
+
 import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 
@@ -14,30 +15,28 @@ export async function updateSession(request: NextRequest) {
         getAll() {
           return request.cookies.getAll()
         },
+        // --- THIS IS THE FIXED FUNCTION ---
         setAll(cookiesToSet) {
-          cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value))
-          supabaseResponse = NextResponse.next({
-            request,
+          cookiesToSet.forEach(({ name, value, options }) => {
+            request.cookies.set(name, value)
+            supabaseResponse.cookies.set(name, value, options)
           })
-          cookiesToSet.forEach(({ name, value }) => supabaseResponse.cookies.set(name, value))
         },
+        // --- END OF FIX ---
       },
     }
   )
 
-  // IMPORTANT: Avoid writing any logic between createServerClient and
-  // supabase.auth.getClaims(). A simple mistake could make it very hard to debug
-  // issues with users being randomly logged out.
-
-  // IMPORTANT: Don't remove getClaims()
+  // --- THIS IS THE OTHER FIX (using getUser) ---
   const {
-  data: { user },
-} = await supabase.auth.getUser()
+    data: { user },
+  } = await supabase.auth.getUser()
+  // --- END OF FIX ---
 
   if (
     !user &&
     !request.nextUrl.pathname.startsWith('/login') &&
-    !request.nextUrl.pathname.startsWith('/auth')
+    !request.nextUrl.pathname.startsWith('/auth') // Ensures /auth/callback isn't blocked
   ) {
     // no user, potentially respond by redirecting the user to the login page
     const url = request.nextUrl.clone()
