@@ -8,12 +8,27 @@ import multer from "multer";
 const app = express();
 
 
-const upload = multer({dest:"uploads/"})
 app.use(cors())
 
 
 
-app.get("",(req,res)=>{
+const storage = multer.diskStorage({
+    destination:function(req,file,cb){
+        cb(null,"uploads/")
+    },
+    filename:function (req,file,cb){
+        const uniqueSufffix = Date.now()+"-"+Math.round(Math.random()*1e9);
+        cb(null,`${uniqueSufffix}-${file.originalname}`); 
+    },
+})
+
+
+
+const upload = multer({storage:storage})
+
+
+
+app.get("/",(req,res)=>{
     return res.json({status:"all good bby"})
 })
 

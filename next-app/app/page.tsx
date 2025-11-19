@@ -10,11 +10,20 @@ export default function Home() {
 
   // This function receives the data FROM the child component
 
-  const handleFileChange = (files: File[]) => {
+  const handleFileChange = async (files: File[]) => {
     console.log("Enterd in handle file changes")
     if (files.length > 0) {
       setShowPromptSpace(true);
       setUploadedFile(files[0]);
+
+      const file = files[0]
+      const formData = new FormData()
+      formData.append('pdf',file)
+
+      await fetch("http://localhost:8000/upload/pdf",{
+        method:"POST",
+        body:formData
+      })
       
       console.log("Home page received file:", files[0].name);
     }
