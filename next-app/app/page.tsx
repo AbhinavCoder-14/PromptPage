@@ -21,11 +21,11 @@ export default function Home() {
   };
 
   return (
-    <main className="flex min-h-screen  flex-col items-center justify-between p-16">
-      <h1 className="text-4xl font-bold mb-2 ">Prompt Page</h1>
+    <main className="flex min-h-screen  flex-col items-center justify-between p-6">
+      <h1 className="text-4xl font-bold mb-2">Prompt Page</h1>
 
-      <div className="flex w-2xl flex-col justify-center items-center border p-2 rounded-xl">
-        <div className="w-full max-w-xl border rounded-xl shadow-sm bg-card">
+      <div className="flex w-2xl flex-col justify-center items-center border p-2 rounded-xl shadow-sm">
+        <div className="w-full max-w-xl border rounded-xl bg-card">
           {/* Use your component here */}
           <PdfUploader onFilesSelected={(files:any)=>{handleFileChange(files)}} />   
         </div>
@@ -33,7 +33,6 @@ export default function Home() {
         {showPromptSpace ? (
           <TextareaWithButton/>
         ):(
-
           <></>
         )}
       </div>
