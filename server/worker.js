@@ -5,41 +5,50 @@ import { QdrantVectorStore } from "@langchain/qdrant";
 import { Document } from "langchain";
 import { PDFLoader } from "@langchain/community/document_loaders/fs/pdf";
 import { CharacterTextSplitter } from "@langchain/textsplitters";
-import 'dotenv/config'
+import "dotenv/config";
 
-import PDFParse  from "pdf-parse"
+import PDFParse from "pdf-parse";
 
 import { QdrantClient } from "@qdrant/js-client-rest";
+import { Embeddings } from "@langchain/core/embeddings";
 
 // console.log("enterd in worder")
 
 const worker = new Worker(
   "file-upload",
   async (job) => {
-    console.log("enterd in worder")
+    console.log("enterd in worder");
 
-    try{
+    try {
       const loader = new PDFLoader(job.data.path);
       const docs = await loader.load();
-      console.log(docs)
+      console.log(docs);
 
-
-      const client = new QdrantClient({ host: "localhost", port: 6333 });
       const textsplitters = new CharacterTextSplitter({
-        chunkSize:300,
+        chunkSize: 300,
         chunkOverlap: 0,
       });
-  
+
       const texts = await textsplitters.splitDocuments(docs);
       console.log(texts);
       console.log("Job:", job.data);
 
-    }
+      const embedding = new GoogleGenerativeAIEmbeddings({
+        model: "text-embedding-004",
+        apiKey: process.env.GEMINI_API_KEY,
+      });
 
-    catch(err){
 
-      console.log(err)
+      const vectorStore = await QdrantVectorStore.fromExistingCollection(embedding,{
+        url:"http://localhost:6333",
+        collectionName:"pdf-docs"
+      })
 
+      await vectorStore.addDocuments(docs);
+
+      console.log("All docs data is added in the vector database")
+    } catch (err) {
+      console.log(err);
     }
   },
   {
@@ -51,8 +60,6 @@ const worker = new Worker(
     },
   }
 );
-
-
 
 // Path:data.Path
 // read the pdf from path
