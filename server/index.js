@@ -10,7 +10,7 @@ const queue = new Queue("file-upload",{
   connection:{
     host:"localhost",
     port:6379,
-    password:process.env.REDIS_PASSWORD
+    password:"ITSMEBBy"
   }
 });
 
@@ -34,12 +34,15 @@ app.get("/", (req, res) => {
 
 app.post("/upload/pdf", upload.single("pdf"), async(req, res) => {
 
-  await queue.add("file-ready",JSON.stringify({
+  await queue.add("file-ready",{
     filename:req.file.originalname,
     destination:req.file.destination,
     path:req.file.path
-  }))
+  })
 
+
+
+  
 
   console.log("upload the given pdf file :)");
 });
