@@ -2,12 +2,15 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono,Poppins } from "next/font/google";
 import "./globals.css";
 
+import ChatBotDemo from "@/components/ChatExchange"
 
 const poppins = Poppins({
   variable: "--font-poppins-sans",
   subsets: ["latin"],
   weight: ["400", "500", "600", "700"], 
 });
+
+
 
 
 
@@ -26,7 +29,11 @@ export default function RootLayout({
       <body
         className={`${poppins.variable} ${poppins.variable} antialiased`}
       >
-        {children}
+
+        <ChatBotDemo>
+          {children}
+        </ChatBotDemo>
+        
       </body>
     </html>
   );

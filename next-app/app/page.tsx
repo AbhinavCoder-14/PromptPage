@@ -3,6 +3,8 @@
 import { useEffect, useState, useSyncExternalStore } from "react";
 import PdfUploader from "@/components/Pdfuploader";
 import { TextareaWithButton } from "@/components/promptArea";
+import ChatBotDemo  from "@/components/ChatExchange"
+import WelcomePage from "@/components/WelcomePage";
 
 export default function Home() {
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
@@ -33,6 +35,12 @@ export default function Home() {
     <main className="flex min-h-screen flex-col items-center justify-between p-6">
       <h1 className="text-4xl font-bold mb-2">Prompt Page</h1>
 
+
+      {showPromptSpace ? <ChatBotDemo/> : <WelcomePage/>}
+
+
+
+
       {!showPromptSpace && (
         <div className="flex w-xl flex-col justify-center items-center border p-2 rounded-xl shadow-sm">
           <div className="w-full max-w-xl border rounded-xl bg-card">
@@ -50,6 +58,8 @@ export default function Home() {
           <TextareaWithButton />
         </div>
       )}
+
+
     </main>
   );
 }
