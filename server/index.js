@@ -2,7 +2,6 @@ import express from "express";
 import cors from "cors";
 import multer from "multer";
 import { Queue } from "bullmq";
-
 import { GoogleGenAI } from "@google/genai";
 
 import { GoogleGenerativeAIEmbeddings } from "@langchain/google-genai";
@@ -62,7 +61,7 @@ app.get("/chat", async (req, res) => {
   );
 
   const ret = vectorStore.asRetriever({
-    k: 200,
+    k: 2,
   });
 
   const result = await ret.invoke(query);
@@ -86,9 +85,7 @@ app.get("/chat", async (req, res) => {
     ],
   });
 
-  res.json({ message: response.text,
-    docs:result
-   });
+  res.json({ message: response.text, docs: result });
 });
 
 app.post("/upload/pdf", upload.single("pdf"), async (req, res) => {
