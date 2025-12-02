@@ -1,32 +1,41 @@
-// ...existing code...
 import { Button } from "@/components/ui/button";
+import { FileText } from "lucide-react";
 
 export default function WelcomePage() {
   return (
-    <div className="w-full max-w-3xl mx-auto">
-      <div className="bg-card border rounded-xl p-6 md:p-8 flex flex-col md:flex-row items-center gap-6 shadow-sm">
+    <div className="w-full max-w-4xl mx-auto px-4">
+      <div className="bg-neutral-900/50 border border-neutral-800 rounded-2xl p-8 md:p-10 flex flex-col md:flex-row items-start gap-8 shadow-2xl backdrop-blur-sm">
         {/* Left: Text content */}
-        <div className="flex-1 text-center md:text-left">
-          <h2 className="text-2xl md:text-3xl font-semibold tracking-tight mb-2">
+        <div className="flex-1">
+          <h2 className="text-3xl md:text-4xl font-bold tracking-tight mb-4 text-white">
             Welcome to Prompt Page
           </h2>
 
-          <p className="text-sm text-muted-foreground mb-4 max-w-2xl">
+          <p className="text-base text-neutral-400 mb-6 leading-relaxed">
             Upload a PDF and ask natural-language questions about its content.
             The app indexes your document locally, then generates precise answers
             pulled directly from the PDF — fast and private.
           </p>
 
-          <ul className="text-sm list-disc list-inside text-left max-w-md mx-auto md:mx-0 mb-4 space-y-1">
-            <li>Best for text-based PDFs (scanned docs may need OCR).</li>
-            <li>Keep files under 20MB for faster processing and indexing.</li>
-            <li>Files are uploaded to your local server at /upload/pdf only.</li>
+          <ul className="text-sm text-neutral-400 space-y-3 mb-6">
+            <li className="flex items-start gap-2">
+              <span className="text-neutral-600 mt-1">•</span>
+              <span>Best for text-based PDFs (scanned docs may need OCR).</span>
+            </li>
+            <li className="flex items-start gap-2">
+              <span className="text-neutral-600 mt-1">•</span>
+              <span>Keep files under 20MB for faster processing and indexing.</span>
+            </li>
+            <li className="flex items-start gap-2">
+              <span className="text-neutral-600 mt-1">•</span>
+              <span>Files are uploaded to your local server at /upload/pdf only.</span>
+            </li>
           </ul>
 
-          <div className="flex items-center justify-center md:justify-start gap-2">
+          <div className="flex items-center gap-3">
             <Button
+              className="bg-purple-600 hover:bg-purple-700 text-white font-medium px-6 py-2 rounded-lg transition-colors"
               onClick={() => {
-                // smooth-scroll to uploader if present on page
                 const el = document.querySelector("#pdf-uploader");
                 if (el) el.scrollIntoView({ behavior: "smooth", block: "center" });
               }}
@@ -36,8 +45,8 @@ export default function WelcomePage() {
 
             <Button
               variant="ghost"
+              className="text-neutral-400 hover:text-white hover:bg-neutral-800 font-medium px-6 py-2 rounded-lg transition-colors"
               onClick={() => {
-                // reveal short tip modal or scroll to prompt area
                 const el = document.querySelector("#prompt-area");
                 if (el) el.scrollIntoView({ behavior: "smooth", block: "center" });
               }}
@@ -47,33 +56,39 @@ export default function WelcomePage() {
           </div>
         </div>
 
-        {/* Right: Visual / How it works */}
-        <div className="w-full md:w-56 flex-none rounded-lg border p-4 bg-gradient-to-b from-muted/40 to-transparent">
-          <div className="flex flex-col items-start gap-3">
-            <div className="flex items-center justify-center w-12 h-12 rounded-md bg-primary/10 text-primary">
-              {/* simple pdf icon */}
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden>
-                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                <path d="M14 2v6h6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-              </svg>
+        {/* Right: How it works card */}
+        <div className="w-full md:w-64 flex-none rounded-xl border border-neutral-800 p-6 bg-neutral-900/80 backdrop-blur-sm">
+          <div className="flex flex-col gap-4">
+            <div className="flex items-center justify-center w-14 h-14 rounded-xl bg-purple-600/10 text-purple-500">
+              <FileText size={28} strokeWidth={1.5} />
             </div>
 
-            <h3 className="text-sm font-medium">How it works</h3>
+            <h3 className="text-base font-semibold text-white">
+              How it works
+            </h3>
 
-            <ol className="text-xs text-muted-foreground list-decimal list-inside ml-4 space-y-1">
-              <li>Upload a PDF — it gets indexed locally.</li>
-              <li>Ask a question in the prompt area that appears.</li>
-              <li>Answers are generated using content from your PDF.</li>
+            <ol className="text-sm text-neutral-400 space-y-3">
+              <li className="flex items-start gap-2">
+                <span className="text-neutral-600 font-medium">1.</span>
+                <span>Upload a PDF — it gets indexed locally.</span>
+              </li>
+              <li className="flex items-start gap-2">
+                <span className="text-neutral-600 font-medium">2.</span>
+                <span>Ask a question in the prompt area that appears.</span>
+              </li>
+              <li className="flex items-start gap-2">
+                <span className="text-neutral-600 font-medium">3.</span>
+                <span>Answers are generated using content from your PDF.</span>
+              </li>
             </ol>
           </div>
         </div>
       </div>
 
-      <p className="mt-4 text-xs text-muted-foreground text-center">
+      <p className="mt-6 text-sm text-neutral-500 text-center max-w-2xl mx-auto">
         Tip: after uploading, the prompt box will replace the uploader. Use clear,
         specific questions for best results.
       </p>
     </div>
   );
 }
-// ...existing code...

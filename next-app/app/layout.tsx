@@ -3,6 +3,7 @@ import { Geist, Geist_Mono,Poppins } from "next/font/google";
 import "./globals.css";
 
 import ChatBotDemo from "@/components/ChatExchange"
+import { ChatContext } from "./context/chatContext";
 
 const poppins = Poppins({
   variable: "--font-poppins-sans",
@@ -30,9 +31,9 @@ export default function RootLayout({
         className={`${poppins.variable} ${poppins.variable} antialiased`}
       >
 
-        <ChatBotDemo>
+        <ChatContext>
           {children}
-        </ChatBotDemo>
+        </ChatContext>
         
       </body>
     </html>

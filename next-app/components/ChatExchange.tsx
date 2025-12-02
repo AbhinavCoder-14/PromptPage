@@ -50,13 +50,15 @@ import {
   ReasoningTrigger,
 } from "@/components/ai-elements/reasoning";
 import { Loader } from "@/components/ai-elements/loader";
-import { TextareaWithButton } from "./promptArea";
+import { TextareaWithButton } from "./TextareaWithButton";
+
+import {usePromptDataObj} from "@/app/context/chatContext"
 
 
 const models = [
   {
-    name: "GPT 4o",
-    value: "openai/gpt-4o",
+    name: "Gemini 3 Pro",
+    value: "Google/gemini flash",
   },
   {
     name: "Deepseek R1",
@@ -67,53 +69,29 @@ const models = [
 
 
 const ChatBotDemo = () => {
-  const [input, setInput] = useState("");
-  const [model, setModel] = useState<string>(models[0].value);
-  const [webSearch, setWebSearch] = useState(false);
-  const { messages, sendMessage, status, regenerate } = useChat();
-  const handleSubmit = (message: PromptInputMessage) => {
-    const hasText = Boolean(message.text);
-    const hasAttachments = Boolean(message.files?.length);
-    if (!(hasText || hasAttachments)) {
-      return;
-    }
-    sendMessage(
-      {
-        text: message.text || "Sent with attachments",
-        files: message.files,
-      },
-      {
-        body: {
-          model: model,
-          webSearch: webSearch,
-        },
-      }
-    );
-    setInput("");
-  };
-  return (
+  const {input, setInput, isOpen, setIsOpen,messages,sendMessage, status, regenerate,webSearch, setWebSearch,model, setModel} = usePromptDataObj();
 
-    
-      <div className="max-w-4xl mx-auto p-6 relative size-full border-4">
+  return (
+      <div className="max-w-4xl mx-auto p-6 relative size-full border-1 rounded-2xl">
         <div className="flex flex-col h-full">
           <Conversation className="h-full">
             <ConversationContent>
-              {messages.map((message) => (
+              {messages.map((message:any) => (
                 <div key={message.id}>
                   {message.role === "assistant" &&
-                    message.parts.filter((part) => part.type === "source-url")
+                    message.parts.filter((part:any) => part.type === "source-url")
                       .length > 0 && (
                       <Sources>
                         <SourcesTrigger
                           count={
                             message.parts.filter(
-                              (part) => part.type === "source-url"
+                              (part:any) => part.type === "source-url"
                             ).length
                           }
                         />
                         {message.parts
-                          .filter((part) => part.type === "source-url")
-                          .map((part, i) => (
+                          .filter((part:any) => part.type === "source-url")
+                          .map((part:any, i:any) => (
                             <SourcesContent key={`${message.id}-${i}`}>
                               <Source
                                 key={`${message.id}-${i}`}
@@ -124,7 +102,7 @@ const ChatBotDemo = () => {
                           ))}
                       </Sources>
                     )}
-                  {message.parts.map((part, i) => {
+                  {message.parts.map((part:any, i:any) => {
                     switch (part.type) {
                       case "text":
                         return (

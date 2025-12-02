@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useSyncExternalStore } from "react";
 import PdfUploader from "@/components/Pdfuploader";
-import { TextareaWithButton } from "@/components/promptArea";
+import { TextareaWithButton } from "@/components/TextareaWithButton";
 import ChatBotDemo  from "@/components/ChatExchange"
 import WelcomePage from "@/components/WelcomePage";
 
@@ -33,10 +33,8 @@ export default function Home() {
 
   return (
     <main className="flex min-h-screen flex-col items-center justify-between p-6">
-      <h1 className="text-4xl font-bold mb-2">Prompt Page</h1>
 
-
-      {showPromptSpace ? <ChatBotDemo/> : <WelcomePage/>}
+      {showPromptSpace ? <><h1 className="text-4xl font-bold mb-2">Prompt Page</h1><ChatBotDemo/></> : <WelcomePage/>}
 
 
 
