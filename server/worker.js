@@ -4,15 +4,11 @@ import { GoogleGenerativeAIEmbeddings } from "@langchain/google-genai";
 import { QdrantVectorStore } from "@langchain/qdrant";
 import { Document } from "langchain";
 import { PDFLoader } from "@langchain/community/document_loaders/fs/pdf";
-import { CharacterTextSplitter } from "@langchain/textsplitters";
+import { RecursiveCharacterTextSplitter } from "@langchain/textsplitters";
 import "dotenv/config";
+import { text } from "stream/consumers";
 
-// import PDFParse from "pdf-parse";
 
-// import { QdrantClient } from "@qdrant/js-client-rest";
-// import { Embeddings } from "@langchain/core/embeddings";
-
-// console.log("enterd in worker")
 
 const worker = new Worker(
   "file-upload",
@@ -24,14 +20,14 @@ const worker = new Worker(
       const docs = await loader.load();
       console.log(docs);
 
-      // const textsplitters = new CharacterTextSplitter({
-      //   chunkSize: 300,
-      //   chunkOverlap: 0,
-      // });
+      const textsplitters = new RecursiveCharacterTextSplitter({
+        chunkSize: 500,
+        chunkOverlap: 50,
+      });
 
-      // const texts = await textsplitters.splitDocuments(docs);
-      // console.log(texts);
-      // console.log("Job:", job.data);
+      const texts = await textsplitters.splitDocuments(docs);
+      console.log(texts);
+      console.log("Job:", job.data);
 
       const embedding = new GoogleGenerativeAIEmbeddings({
         model: "text-embedding-004",
@@ -46,15 +42,15 @@ const worker = new Worker(
         }
       );
 
-      await vectorStore.addDocuments(docs);
+      await vectorStore.addDocuments(texts);
 
-      console.log("All docs data is added in the vector database");
+      console.log("Success: All chunks added to vector database.");
     } catch (err) {
       console.log(err);
     }
   },
   {
-    concurrency: 100,
+    concurrency: 5,
     connection: {
       host: "localhost",
       port: 6379,

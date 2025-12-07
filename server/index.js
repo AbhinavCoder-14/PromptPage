@@ -45,7 +45,9 @@ app.get("/", (req, res) => {
 });
 
 app.get("/chat", async (req, res) => {
-  const query = "what is python?";
+
+
+  const query = req.params?.ques || "what is python?";
 
   const embedding = new GoogleGenerativeAIEmbeddings({
     model: "text-embedding-004",
@@ -61,18 +63,19 @@ app.get("/chat", async (req, res) => {
   );
 
   const ret = vectorStore.asRetriever({
-    k: 2,
+    k: 10,
   });
 
   const result = await ret.invoke(query);
-  const SYSTEM_PROMPT = `you are helpfull ai assistant who answer the user query based on the avaliable context form the given pdf file. context: ${JSON.stringify(
-    result
-  )}`;
+
+  const contextText = result.map((doc) => doc.pageContent).join("\n\n");
+  const SYSTEM_PROMPT = `you are helpfull ai assistant who answer the user query based on the avaliable context form the given pdf file. 
+  Context: ${contextText}`;
 
   const response = await client.models.generateContent({
-    model: "gemini-2.5-flash", // 'gemini-3' does not exist yet; use 1.5-flash or 1.5-pro
+    model: "gemini-2.5-flash",
     config: {
-      // System instructions are best placed here in the new SDK
+
       systemInstruction: {
         parts: [{ text: SYSTEM_PROMPT }],
       },
@@ -80,7 +83,7 @@ app.get("/chat", async (req, res) => {
     contents: [
       {
         role: "user",
-        parts: [{ text: query }], // Must use 'parts' array with 'text' key
+        parts: [{ text: query }],
       },
     ],
   });
