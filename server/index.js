@@ -4,13 +4,18 @@ import multer from "multer";
 import { Queue } from "bullmq";
 import { GoogleGenAI } from "@google/genai";
 
-import { GoogleGenerativeAIEmbeddings } from "@langchain/google-genai";
+import { ChatMessageHistory } from "@langchain/community/stores/message/in_memory";
+import { RunnableWithMessageHistory } from "@langchain/core/runnables";
+import { ChatGoogleGenerativeAI, GoogleGenerativeAIEmbeddings } from "@langchain/google-genai";
 import { QdrantVectorStore } from "@langchain/qdrant";
-import { Document, SystemMessage } from "langchain";
 import { PDFLoader } from "@langchain/community/document_loaders/fs/pdf";
 import { CharacterTextSplitter } from "@langchain/textsplitters";
+import { ChatPromptTemplate, MessagesPlaceholder } from "@langchain/core/prompts";
+import { createHistoryAwareRetriever } from "langchain/chains/history_aware_retriever";
+import { createStuffDocumentsChain } from "langchain/chains/combine_documents";
+import { createRetrievalChain } from "langchain/chains/retrieval";
 
-import "dotenv/config";
+import "dotenv/config"
 
 const app = express();
 
@@ -44,7 +49,23 @@ app.get("/", (req, res) => {
   return res.json({ status: "all good bby" });
 });
 
+
+const messageHistories = new Map();
+    const getMessageHistory = (sessionId) => {
+      if (messageHistories.has(sessionId)) {
+        return messageHistories.get(sessionId);
+      }
+      const history = new ChatMessageHistory();
+      messageHistories.set(sessionId, history);
+      return history;
+    };
+
 app.get("/chat", async (req, res) => {
+
+  const sessionId = "default-guest";
+
+
+    
 
 
   const query = req.params?.ques || "what is python?";
@@ -66,27 +87,65 @@ app.get("/chat", async (req, res) => {
     k: 10,
   });
 
+  const llm = new ChatGoogleGenerativeAI({
+      model: "gemini-2.5-flash",
+      apiKey: process.env.GEMINI_API_KEY2,
+      temperature: 0.7,
+    });
+
   const result = await ret.invoke(query);
-
   const contextText = result.map((doc) => doc.pageContent).join("\n\n");
-  const SYSTEM_PROMPT = `you are helpfull ai assistant who answer the user query based on the avaliable context form the given pdf file. 
-  Context: ${contextText}`;
 
-  const response = await client.models.generateContent({
-    model: "gemini-2.5-flash",
-    config: {
+  const rephasePrompt = ChatPromptTemplate.fromMessages([
+    new MessagesPlaceholder("chat_history"),
+    ["user","{query}"],
+    ["user","Given the above conversation, generate a search query to look up in order to get information relevant to the conversation",],
+  ])
 
-      systemInstruction: {
-        parts: [{ text: SYSTEM_PROMPT }],
-      },
-    },
-    contents: [
-      {
-        role: "user",
-        parts: [{ text: query }],
-      },
-    ],
-  });
+  const historyAwareRetriever = await createHistoryAwareRetriever({
+    llm:llm,
+    retriver:ret,
+    rephrasePrompt: rephasePrompt,
+  })
+
+  const systemPromptText = `You are a helpful assistant. Answer the user's question using ONLY the provided context from the PDF documents. 
+If the user's question cannot be answered from the provided context, say "I don't know based on the provided documents." 
+Do not invent facts, do not use external knowledge, and do not hallucinate. Be concise.`;
+
+    const qaPrompt = ChatPromptTemplate.fromMessages([
+      ["system", systemPromptText],
+      new MessagesPlaceholder("chat_history"),
+      ["user", "{query}"],
+    ]);
+
+
+    const questionAnswerChain = await createStuffDocumentsChain({
+      llm,
+      prompt: qaPrompt,
+    });
+
+
+    const ragChain = await createRetrievalChain({
+      retriever: historyAwareRetriever,
+      combineDocsChain: questionAnswerChain,
+    });
+
+
+    const conversationalRagChain = new RunnableWithMessageHistory({
+      runnable: ragChain,
+      getMessageHistory: getMessageHistory,
+      inputMessagesKey: "query",
+      historyMessagesKey: "chat_history",
+      outputMessagesKey: "answer",
+    });
+
+    const response = await conversationalRagChain.invoke(
+      { input: query },
+      { configurable: { sessionId } }
+    );
+
+
+
 
   res.json({ message: response.text, docs: result });
 });
