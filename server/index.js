@@ -1,6 +1,7 @@
 import express from "express";
 import cors from "cors";
 import multer from "multer";
+import "dotenv/config"
 import { Queue } from "bullmq";
 import { GoogleGenAI } from "@google/genai";
 
@@ -15,7 +16,6 @@ import { createHistoryAwareRetriever } from "langchain/chains/history_aware_retr
 import { createStuffDocumentsChain } from "langchain/chains/combine_documents";
 import { createRetrievalChain } from "langchain/chains/retrieval";
 
-import "dotenv/config"
 
 const app = express();
 
@@ -92,6 +92,7 @@ app.get("/chat", async (req, res) => {
       apiKey: process.env.GEMINI_API_KEY2,
       temperature: 0.7,
     });
+
 
   const result = await ret.invoke(query);
   const contextText = result.map((doc) => doc.pageContent).join("\n\n");
