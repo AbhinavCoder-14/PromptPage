@@ -1,26 +1,18 @@
 import express from "express";
 import cors from "cors";
 import multer from "multer";
-import "dotenv/config";
+import "dotenv/config"
 import { Queue } from "bullmq";
 import { GoogleGenAI } from "@google/genai";
 
 import { ChatMessageHistory } from "@langchain/community/stores/message/in_memory";
 import { RunnableWithMessageHistory } from "@langchain/core/runnables";
-import {
-  ChatGoogleGenerativeAI,
-  GoogleGenerativeAIEmbeddings,
-} from "@langchain/google-genai";
+import { ChatGoogleGenerativeAI, GoogleGenerativeAIEmbeddings } from "@langchain/google-genai";
 import { QdrantVectorStore } from "@langchain/qdrant";
-import {
-  ChatPromptTemplate,
-  MessagesPlaceholder,
-} from "@langchain/core/prompts";
+import { ChatPromptTemplate, MessagesPlaceholder } from "@langchain/core/prompts";
 
-import {
-  RunnableSequence,
-  RunnablePassthrough,
-} from "@langchain/core/runnables";
+
+import { RunnableSequence,RunnablePassthrough } from "@langchain/core/runnables";
 import { StringOutputParser } from "@langchain/core/output_parsers";
 
 const app = express();
@@ -55,15 +47,16 @@ app.get("/", (req, res) => {
   return res.json({ status: "all good bby" });
 });
 
+
 const messageHistories = new Map();
-const getMessageHistory = (sessionId) => {
-  if (messageHistories.has(sessionId)) {
-    return messageHistories.get(sessionId);
-  }
-  const history = new ChatMessageHistory();
-  messageHistories.set(sessionId, history);
-  return history;
-};
+    const getMessageHistory = (sessionId) => {
+      if (messageHistories.has(sessionId)) {
+        return messageHistories.get(sessionId);
+      }
+      const history = new ChatMessageHistory();
+      messageHistories.set(sessionId, history);
+      return history;
+    };
 
 app.post("/chat", async (req, res) => {
   const sessionId = "default-guest";
@@ -81,6 +74,7 @@ app.post("/chat", async (req, res) => {
       url: "http://localhost:6333",
       collectionName: "pdf-docs",
     }
+
   );
 
   const retriever = vectorStore.asRetriever({
@@ -129,13 +123,7 @@ Context: {context}`;
       },
     }),
     async (input) => {
-      const question =
-        typeof input.input === "string"
-          ? input.input
-          : await input.input.invoke({
-              chat_history: input.chat_history,
-              input: input.input,
-            });
+      const question = typeof input.input === 'string' ? input.input : await input.input.invoke({ chat_history: input.chat_history, input: input.input });
       return retriever.invoke(question);
     },
   ]);

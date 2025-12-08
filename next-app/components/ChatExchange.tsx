@@ -72,7 +72,7 @@ const ChatBotDemo = () => {
   const {input, setInput, isOpen, setIsOpen,messages,sendMessage, status, regenerate,webSearch, setWebSearch,model, setModel} = usePromptDataObj();
 
   return (
-      <div className="max-w-4xl mx-auto p-6 relative size-full border-1 rounded-2xl">
+      <div className="max-w-4xl mx-auto p-6 relative size-full rounded-2xl">
         <div className="flex flex-col h-full">
           <Conversation className="h-full">
             <ConversationContent>
@@ -148,7 +148,7 @@ const ChatBotDemo = () => {
                         );
                       default:
                         return null;
-                    }
+                    } 
                   })}
                 </div>
               ))}

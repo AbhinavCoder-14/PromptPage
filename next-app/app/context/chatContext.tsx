@@ -36,7 +36,7 @@ const PromptData = createContext<SidebarContextType | null>(null);
 // 3. The Provider Component (Exported)
 // This is where your state/hook logic lives!
 export function ChatContext({ children }: { children: React.ReactNode }) {
-  // --- YOUR LOGIC STARTS HERE ---
+
   const [isOpen, setIsOpen] = useState(false);
   const [input, setInput] = useState("");
   const [webSearch, setWebSearch] = useState(false);
@@ -54,7 +54,6 @@ export function ChatContext({ children }: { children: React.ReactNode }) {
 export function usePromptDataObj() {
   const context = useContext(PromptData);
   if (!context) {
-
     throw new Error("useSidebar must be used within a SidebarProvider");
   }
   return context;
