@@ -9,12 +9,12 @@ import { ChatMessageHistory } from "@langchain/community/stores/message/in_memor
 import { RunnableWithMessageHistory } from "@langchain/core/runnables";
 import { ChatGoogleGenerativeAI, GoogleGenerativeAIEmbeddings } from "@langchain/google-genai";
 import { QdrantVectorStore } from "@langchain/qdrant";
-import { PDFLoader } from "@langchain/community/document_loaders/fs/pdf";
-import { CharacterTextSplitter } from "@langchain/textsplitters";
 import { ChatPromptTemplate, MessagesPlaceholder } from "@langchain/core/prompts";
+
+
 import { createHistoryAwareRetriever } from "langchain/chains/history_aware_retriever";
-import { createStuffDocumentsChain } from "langchain/chains/combine_documents";
 import { createRetrievalChain } from "langchain/chains/retrieval";
+import { createStuffDocumentsChain } from "langchain/chains/combine_documents";
 
 
 const app = express();
@@ -104,11 +104,10 @@ app.get("/chat", async (req, res) => {
   ])
 
   const historyAwareRetriever = await createHistoryAwareRetriever({
-    llm:llm,
-    retriver:ret,
-    rephrasePrompt: rephasePrompt,
+      llm:llm,
+      retriver:ret,
+      rephrasePrompt: rephasePrompt,
   })
-
   const systemPromptText = `You are a helpful assistant. Answer the user's question using ONLY the provided context from the PDF documents. 
 If the user's question cannot be answered from the provided context, say "I don't know based on the provided documents." 
 Do not invent facts, do not use external knowledge, and do not hallucinate. Be concise.`;
