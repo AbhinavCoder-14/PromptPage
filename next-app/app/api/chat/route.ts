@@ -43,19 +43,21 @@ export async function POST(req: Request) {
   const body = await req.json();
     const sessionId = "guest"
   try {
-    const data = await microserviceResponse({
-      messages: body.messages,
-      model: body.model,
-      webSearch: body.webSearch,
-    });
+    // const data = await microserviceResponse({
+    //   messages: body.messages,
+    //   model: body.model,
+    //   webSearch: body.webSearch,
+    // });
 
-    console.log(data.message)
+    // console.log(data.message)
 
-    return NextResponse.json({
-      role: "assistant",
-      content: data.message,
-      data: data,
-    });
+    return new Response("this is from ai assistent message....")
+
+    // return NextResponse.json({
+    //   role: "assistant",
+    //   content: data.message,
+    //   data: data,
+    // });
   } catch (error: any) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   } 
