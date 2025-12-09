@@ -180,170 +180,101 @@ flowchart TD
 ```
 
 ### RAG Query Pipeline
-```
-┌─────────────────────────────────────────────────────────────────────┐
-│                         USER QUESTION                               │
-│                    "What is the Q3 revenue?"                        │
-└────────────────────────────┬────────────────────────────────────────┘
-                             │
-                    ┌────────▼─────────┐
-                    │ Check Session ID │
-                    └────────┬─────────┘
-                             │
-                ┌────────────▼────────────┐
-                │   Has Chat History?     │
-                └─────┬─────────────┬─────┘
-                      │ YES         │ NO
-         ┌────────────▼───┐    ┌───▼────────────┐
-         │ Contextualize  │    │ Use Original   │
-         │ Question w/LLM │    │ Question       │
-         └────────┬───────┘    └───┬────────────┘
-                  │                │
-                  └────────┬───────┘
-                           │
-              ┌────────────▼────────────┐
-              │   HYBRID RETRIEVER      │
-              │  (Ensemble Search)      │
-              └─────┬──────────────┬────┘
-                    │              │
-       ┌────────────▼───┐    ┌────▼─────────────┐
-       │  BM25 Search   │    │  Vector Search   │
-       │  (Keywords)    │    │  (Semantic)      │
-       │                │    │                  │
-       │ • Exact match  │    │ • Cosine sim.    │
-       │ • Token-based  │    │ • Embeddings     │
-       └────────┬───────┘    └────┬─────────────┘
-                │                 │
-                │  Weight: 0.4    │  Weight: 0.6
-                │                 │
-                └────────┬────────┘
-                         │
-              ┌──────────▼───────────┐
-              │   MERGE RESULTS      │
-              │   (Top 10 chunks)    │
-              └──────────┬───────────┘
-                         │
-              ┌──────────▼───────────┐
-              │  PARENT DOCUMENT     │
-              │  LOOKUP (Optional)   │
-              │                      │
-              │  Small chunk IDs     │
-              │       ↓              │
-              │  Large parent docs   │
-              └──────────┬───────────┘
-                         │
-              ┌──────────▼───────────┐
-              │   CONTEXT ASSEMBLY   │
-              │                      │
-              │  • Chat history      │
-              │  • Retrieved chunks  │
-              │  • Metadata          │
-              └──────────┬───────────┘
-                         │
-              ┌──────────▼───────────┐
-              │   LLM GENERATION     │
-              │   (Gemini 2.5)       │
-              │                      │
-              │  Prompt:             │
-              │  "Answer using only  │
-              │   provided context"  │
-              └──────────┬───────────┘
-                         │
-              ┌──────────▼───────────┐
-              │  RESPONSE + CITATIONS│
-              │                      │
-              │  "Q3 revenue is $5M" │
-              │  [Source: Page 14]   │
-              └──────────┬───────────┘
-                         │
-              ┌──────────▼───────────┐
-              │   UPDATE HISTORY     │
-              │   Store in Memory    │
-              └──────────────────────┘
+```mermaid
+flowchart TD
+    subgraph Input ["User Input"]
+        Question["USER QUESTION\n'What is the Q3 revenue?'"]
+    end
+
+    subgraph Preprocessing ["Query Preprocessing"]
+        CheckSession["Check Session ID"]
+        HasHistory{{"Has Chat History?"}}
+        Contextualize["Contextualize\nQuestion w/LLM"]
+        UseOriginal["Use Original\nQuestion"]
+    end
+
+    subgraph Retrieval ["HYBRID RETRIEVER (Ensemble Search)"]
+        BM25["BM25 Search\n(Keywords)\n• Exact match\n• Token-based"]
+        VectorSearch["Vector Search\n(Semantic)\n• Cosine sim.\n• Embeddings"]
+        Merge["MERGE RESULTS\n(Top 10 chunks)"]
+    end
+
+    subgraph PostRetrieval ["Post-Retrieval Optimization"]
+        ParentDoc["PARENT DOCUMENT\nLOOKUP (Optional)\nSmall chunk IDs\n↓\nLarge parent docs"]
+        ContextAssembly["CONTEXT ASSEMBLY\n• Chat history\n• Retrieved chunks\n• Metadata"]
+    end
+
+    subgraph Generation ["Generation & Output"]
+        LLM["LLM GENERATION\n(Gemini 2.5)\nPrompt:\n'Answer using only\nprovided context'"]
+        Response["RESPONSE + CITATIONS\n'Q3 revenue is $5M'\n[Source: Page 14]"]
+        UpdateHistory["UPDATE HISTORY\nStore in Memory"]
+    end
+
+    Question --> CheckSession
+    CheckSession --> HasHistory
+    HasHistory -->|YES| Contextualize
+    HasHistory -->|NO| UseOriginal
+    Contextualize --> BM25
+    Contextualize --> VectorSearch
+    UseOriginal --> BM25
+    UseOriginal --> VectorSearch
+
+    BM25 -->|"Weight: 0.4"| Merge
+    VectorSearch -->|"Weight: 0.6"| Merge
+    Merge --> ParentDoc
+    ParentDoc --> ContextAssembly
+    ContextAssembly --> LLM
+    LLM --> Response
+    Response --> UpdateHistory
+
+    style Input fill:#e3f2fd,stroke:#1565c0
+    style Preprocessing fill:#f3e5f5,stroke:#6a1b9a
+    style Retrieval fill:#e8f5e9,stroke:#2e7d32
+    style PostRetrieval fill:#fffde7,stroke:#f9a825
+    style Generation fill:#ffebee,stroke:#c62828
+    style BM25 fill:#c8e6c9,stroke:#1b5e20
+    style VectorSearch fill:#c8e6c9,stroke:#1b5e20
 ```
 
 ### Document Processing Pipeline
-```
-┌─────────────────────────────────────────────────────────────────────┐
-│                         PDF UPLOADED                                │
-│                      "annual_report.pdf"                            │
-└────────────────────────────┬────────────────────────────────────────┘
-                             │
-                    ┌────────▼─────────┐
-                    │  Save to /uploads│
-                    │  Generate Job ID │
-                    └────────┬─────────┘
-                             │
-                ┌────────────▼────────────┐
-                │   Add to BullMQ Queue   │
-                │   Job: {                │
-                │     path: "/uploads/...",│
-                │     filename: "..."     │
-                │   }                     │
-                └────────────┬────────────┘
-                             │
-                    ┌────────▼─────────┐
-                    │  Worker Picks Up │
-                    │  Job from Queue  │
-                    └────────┬─────────┘
-                             │
-              ┌──────────────▼──────────────┐
-              │    PDF LOADER               │
-              │    (LangChain)              │
-              │                             │
-              │  • Parse PDF structure      │
-              │  • Extract text per page    │
-              │  • Preserve metadata        │
-              └──────────────┬──────────────┘
-                             │
-                             │ Raw text + metadata
-                             │
-              ┌──────────────▼──────────────┐
-              │  TEXT SPLITTER              │
-              │  (RecursiveCharacter)       │
-              │                             │
-              │  Config:                    │
-              │  • Chunk size: 500 tokens   │
-              │  • Overlap: 50 tokens       │
-              │  • Separators: ["\n\n",     │
-              │    "\n", " "]               │
-              └──────────────┬──────────────┘
-                             │
-                             │ Array of chunks
-                             │
-              ┌──────────────▼──────────────┐
-              │  EMBEDDING GENERATION       │
-              │  (Google Gemini)            │
-              │                             │
-              │  For each chunk:            │
-              │  • text-embedding-004       │
-              │  • Output: 768-dim vector   │
-              │                             │
-              │  Batch processing (10/req)  │
-              └──────────────┬──────────────┘
-                             │
-                             │ Chunks + embeddings
-                             │
-              ┌──────────────▼──────────────┐
-              │   VECTOR STORAGE            │
-              │   (Qdrant)                  │
-              │                             │
-              │  For each chunk:            │
-              │  {                          │
-              │    id: uuid(),              │
-              │    vector: [0.1, ...],      │
-              │    payload: {               │
-              │      text: "...",           │
-              │      page: 14,              │
-              │      source: "report.pdf"   │
-              │    }                        │
-              │  }                          │
-              └──────────────┬──────────────┘
-                             │
-                    ┌────────▼─────────┐
-                    │  Index Complete  │
-                    │  Notify Frontend │
-                    └──────────────────┘
+```mermaid
+flowchart TD
+    subgraph InitialHandling ["Initial Handling"]
+        Start["PDF UPLOADED\n'annual_report.pdf'"]
+        Save["Save to /uploads\nGenerate Job ID"]
+        Queue["Add to BullMQ Queue\nJob: { path: '...', filename: '...' }"]
+    end
+
+    subgraph WorkerProcessing ["Worker Processing"]
+        Worker["Worker Picks Up\nJob from Queue"]
+        Loader["PDF LOADER\n(LangChain)\n• Parse PDF structure\n• Extract text per page\n• Preserve metadata"]
+        Splitter["TEXT SPLITTER\n(RecursiveCharacter)\nConfig:\n• Chunk size: 500 tokens\n• Overlap: 50 tokens\n• Separators: ['\n\n', '\n', ' ']"]
+        Embedding["EMBEDDING GENERATION\n(Google Gemini)\nFor each chunk:\n• text-embedding-004\n• Output: 768-dim vector\nBatch processing (10/req)"]
+        Storage["VECTOR STORAGE\n(Qdrant)\nFor each chunk:\n{ id: uuid(), vector: [...], payload: { text: '...', page: 14, source: '...' } }"]
+    end
+
+    End["Index Complete\nNotify Frontend"]
+
+    Start --> Save
+    Save --> Queue
+    Queue --> Worker
+    Worker --> Loader
+    Loader -->|"Raw text + metadata"| Splitter
+    Splitter -->|"Array of chunks"| Embedding
+    Embedding -->|"Chunks + embeddings"| Storage
+    Storage --> End
+
+    style InitialHandling fill:#e3f2fd,stroke:#1565c0
+    style WorkerProcessing fill:#f3e5f5,stroke:#6a1b9a
+    style Start fill:#bbdefb,stroke:#1565c0
+    style Save fill:#bbdefb,stroke:#1565c0
+    style Queue fill:#e1bee7,stroke:#6a1b9a
+    style Worker fill:#e1bee7,stroke:#6a1b9a
+    style Loader fill:#c8e6c9,stroke:#2e7d32
+    style Splitter fill:#c8e6c9,stroke:#2e7d32
+    style Embedding fill:#c8e6c9,stroke:#2e7d32
+    style Storage fill:#c8e6c9,stroke:#2e7d32
+    style End fill:#fff9c4,stroke:#fbc02d
 ```
 
 ---
