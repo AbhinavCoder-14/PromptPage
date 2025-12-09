@@ -122,53 +122,61 @@ Combines complementary search strategies:
 
 **High-Level Flow:**
 ```
-┌─────────────────────────────────────────────────────────────────────┐
-│                         CLIENT (Next.js)                            │
-│  ┌──────────────────┐              ┌──────────────────┐            │
-│  │  PDF Upload UI   │              │   Chat Interface │            │
-│  └────────┬─────────┘              └────────┬─────────┘            │
-└───────────┼──────────────────────────────────┼──────────────────────┘
-            │                                  │
-            │ POST /upload/pdf                 │ POST /chat
-            │                                  │
-┌───────────▼──────────────────────────────────▼──────────────────────┐
-│                    EXPRESS API SERVER (Node.js)                     │
-│  ┌──────────────────┐              ┌──────────────────┐            │
-│  │  Upload Handler  │              │  Chat Endpoint   │            │
-│  └────────┬─────────┘              └────────┬─────────┘            │
-└───────────┼──────────────────────────────────┼──────────────────────┘
-            │                                  │
-            │ Add Job                          │ Query
-            │                                  │
-┌───────────▼────────────┐         ┌───────────▼──────────────────────┐
-│   BullMQ Queue (Redis) │         │  RAG Pipeline (LangChain)        │
-│  ┌──────────────────┐  │         │  ┌────────────────────────────┐ │
-│  │   Job: Process   │  │         │  │ 1. Retrieve History        │ │
-│  │   PDF Document   │  │         │  │ 2. Contextualize Question  │ │
-│  └──────────────────┘  │         │  │ 3. Hybrid Search           │ │
-└───────────┬────────────┘         │  │ 4. Generate Response       │ │
-            │                      │  └────────────────────────────┘ │
-            │                      └───────────┬──────────────────────┘
-            │                                  │
-┌───────────▼────────────┐                    │
-│  Worker Process        │                    │
-│  ┌──────────────────┐  │                    │
-│  │ 1. Load PDF      │  │         ┌──────────▼──────────────────────┐
-│  │ 2. Split Text    │  │         │   Qdrant Vector Database        │
-│  │ 3. Generate      │  │◄────────┤   ┌──────────────────────────┐  │
-│  │    Embeddings    │  │  Query  │   │  Collection: pdf-docs    │  │
-│  │ 4. Store Vectors │  ├────────►│   │  Vectors: 768 dimensions │  │
-│  └──────────────────┘  │  Store  │   │  Metadata: page, source  │  │
-└────────────────────────┘         │   └──────────────────────────┘  │
-                                   └─────────────────────────────────┘
-                                   
-┌─────────────────────────────────────────────────────────────────────┐
-│                      External Services                              │
-│  ┌──────────────────┐              ┌──────────────────┐            │
-│  │ Supabase Auth    │              │ Google Gemini    │            │
-│  │ (User Sessions)  │              │ (LLM + Embeddings│            │
-│  └──────────────────┘              └──────────────────┘            │
-└─────────────────────────────────────────────────────────────────────┘
+flowchart TD
+    subgraph Client ["CLIENT (Next.js)"]
+        UploadUI["PDF Upload UI"]
+        ChatUI["Chat Interface"]
+    end
+
+    subgraph Server ["EXPRESS API SERVER (Node.js)"]
+        UploadHandler["Upload Handler"]
+        ChatEndpoint["Chat Endpoint"]
+    end
+
+    subgraph Queue ["BullMQ Queue (Redis)"]
+        Job["Job: Process PDF Document"]
+    end
+
+    subgraph Worker ["Worker Process"]
+        ProcessPDF["1. Load PDF\n2. Split Text\n3. Generate Embeddings\n4. Store Vectors"]
+    end
+
+    subgraph RAG ["RAG Pipeline (LangChain)"]
+        RAGSteps["1. Retrieve History\n2. Contextualize Question\n3. Hybrid Search\n4. Generate Response"]
+    end
+
+    subgraph VectorDB ["Qdrant Vector Database"]
+        QdrantData["Collection: pdf-docs\nVectors: 768 dimensions\nMetadata: page, source"]
+    end
+
+    subgraph External ["External Services"]
+        Supabase["Supabase Auth\n(User Sessions)"]
+        Gemini["Google Gemini\n(LLM + Embeddings)"]
+    end
+
+    UploadUI -->|POST /upload/pdf| UploadHandler
+    ChatUI -->|POST /chat| ChatEndpoint
+
+    UploadHandler -->|Add Job| Job
+    Job -->|Process| ProcessPDF
+    ProcessPDF -->|Store Vectors|VectorDB
+
+    ChatEndpoint -->|Query| RAGSteps
+    RAGSteps -->|Query Vectors| VectorDB
+    VectorDB -->|Return Vectors| RAGSteps
+    RAGSteps -->|Generate Response| Gemini
+
+    Server -->|Auth| Supabase
+    Server -->|Embeddings/LLM| Gemini
+    ProcessPDF -->|Embeddings| Gemini
+
+    style Client fill:#e1f5fe,stroke:#01579b
+    style Server fill:#fff3e0,stroke:#ff6f00
+    style Queue fill:#fce4ec,stroke:#880e4f
+    style Worker fill:#f3e5f5,stroke:#4a148c
+    style RAG fill:#e8f5e9,stroke:#1b5e20
+    style VectorDB fill:#efebe9,stroke:#3e2723
+    style External fill:#fffde7,stroke:#f57f17
 ```
 
 ### RAG Query Pipeline
