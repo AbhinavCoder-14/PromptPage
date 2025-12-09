@@ -121,7 +121,7 @@ Combines complementary search strategies:
 ![System Architecture](https://i.imgur.com/your-diagram-link.png)
 
 **High-Level Flow:**
-```
+```mermaid
 flowchart TD
     subgraph Client ["CLIENT (Next.js)"]
         UploadUI["PDF Upload UI"]
