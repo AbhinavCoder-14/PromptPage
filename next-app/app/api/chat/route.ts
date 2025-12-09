@@ -1,68 +1,20 @@
-import { streamText, UIMessage, convertToModelMessages } from "ai";
-import { NextResponse } from "next/server";
+import { google } from '@ai-sdk/google';
+import { streamText, convertToCoreMessages } from 'ai';
 
-interface dataType {
-  message: string;
-}
+import "dotenv/config"
 
-
-async function microserviceResponse({
-  messages,
-  model,
-  webSearch,
-}: {
-  messages: UIMessage[];
-  model: string;
-  webSearch: boolean;
-}) {
-  const currentMessage = messages[messages.length - 1];
-  console.log(currentMessage);
-
-  const microserviceResponse = await fetch("http://localhost:8000/chat", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify(currentMessage),
-  });
-
-  if (!microserviceResponse.ok) {
-    throw new Error(`Microservice error: ${microserviceResponse.statusText}`);
-  }
-  const data: dataType = await microserviceResponse.json();
-
-  return data;
-}
-
-
-
+// Allow streaming responses up to 30 seconds
+export const maxDuration = 30;
 
 export async function POST(req: Request) {
+  const { messages } = await req.json();
 
-    console.log("Enter in backend api")
-  const body = await req.json();
-    const sessionId = "guest"
-  try {
-    // const data = await microserviceResponse({
-    //   messages: body.messages,
-    //   model: body.model,
-    //   webSearch: body.webSearch,
-    // });
+  // Calls Google Gemini directly
+  const result = await streamText({
+    model: google('gemini-2.5-flash'), // or 'gemini-1.5-pro'
+    messages: convertToCoreMessages(messages),
+  });
 
-    // console.log(data.message)
-
-    return new Response("this is from ai assistent message....")
-
-    // return NextResponse.json({
-    //   role: "assistant",
-    //   content: data.message,
-    //   data: data,
-    // });
-  } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
-  } 
+  // Returns the stream automatically in the correct format
+  return result.toTextStreamResponse();
 }
-
-
-
-
