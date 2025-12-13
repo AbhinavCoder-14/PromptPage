@@ -170,13 +170,7 @@ flowchart TD
     Server -->|Embeddings/LLM| Gemini
     ProcessPDF -->|Embeddings| Gemini
 
-    style Client fill:#e1f5fe,stroke:#01579b
-    style Server fill:#fff3e0,stroke:#ff6f00
-    style Queue fill:#fce4ec,stroke:#880e4f
-    style Worker fill:#f3e5f5,stroke:#4a148c
-    style RAG fill:#e8f5e9,stroke:#1b5e20
-    style VectorDB fill:#efebe9,stroke:#3e2723
-    style External fill:#fffde7,stroke:#f57f17
+    %% Added 'color:#000000' to force black text for high contrast
 ```
 
 ### RAG Query Pipeline
