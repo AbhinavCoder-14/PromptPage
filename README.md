@@ -227,13 +227,18 @@ flowchart TD
     LLM --> Response
     Response --> UpdateHistory
 
-    style Input fill:#e3f2fd,stroke:#1565c0
-    style Preprocessing fill:#f3e5f5,stroke:#6a1b9a
-    style Retrieval fill:#e8f5e9,stroke:#2e7d32
-    style PostRetrieval fill:#fffde7,stroke:#f9a825
-    style Generation fill:#ffebee,stroke:#c62828
-    style BM25 fill:#c8e6c9,stroke:#1b5e20
-    style VectorSearch fill:#c8e6c9,stroke:#1b5e20
+    %% --- STYLING ---
+    %% 1. Force all unstyled nodes (LLM, Question, etc) to have Black Text & White BG
+    classDef default fill:#fff,stroke:#333,stroke-width:1px,color:#000
+
+    %% 2. Your custom styles with color:#000 added
+    style Input fill:#e3f2fd,stroke:#1565c0,color:#000
+    style Preprocessing fill:#f3e5f5,stroke:#6a1b9a,color:#000
+    style Retrieval fill:#e8f5e9,stroke:#2e7d32,color:#000
+    style PostRetrieval fill:#fffde7,stroke:#f9a825,color:#000
+    style Generation fill:#ffebee,stroke:#c62828,color:#000
+    style BM25 fill:#c8e6c9,stroke:#1b5e20,color:#000
+    style VectorSearch fill:#c8e6c9,stroke:#1b5e20,color:#000
 ```
 
 ### Document Processing Pipeline
@@ -264,17 +269,18 @@ flowchart TD
     Embedding -->|"Chunks + embeddings"| Storage
     Storage --> End
 
-    style InitialHandling fill:#e3f2fd,stroke:#1565c0
-    style WorkerProcessing fill:#f3e5f5,stroke:#6a1b9a
-    style Start fill:#bbdefb,stroke:#1565c0
-    style Save fill:#bbdefb,stroke:#1565c0
-    style Queue fill:#e1bee7,stroke:#6a1b9a
-    style Worker fill:#e1bee7,stroke:#6a1b9a
-    style Loader fill:#c8e6c9,stroke:#2e7d32
-    style Splitter fill:#c8e6c9,stroke:#2e7d32
-    style Embedding fill:#c8e6c9,stroke:#2e7d32
-    style Storage fill:#c8e6c9,stroke:#2e7d32
-    style End fill:#fff9c4,stroke:#fbc02d
+    %% Added color:#000 to all styles below to force black text
+    style InitialHandling fill:#e3f2fd,stroke:#1565c0,color:#000
+    style WorkerProcessing fill:#f3e5f5,stroke:#6a1b9a,color:#000
+    style Start fill:#bbdefb,stroke:#1565c0,color:#000
+    style Save fill:#bbdefb,stroke:#1565c0,color:#000
+    style Queue fill:#e1bee7,stroke:#6a1b9a,color:#000
+    style Worker fill:#e1bee7,stroke:#6a1b9a,color:#000
+    style Loader fill:#c8e6c9,stroke:#2e7d32,color:#000
+    style Splitter fill:#c8e6c9,stroke:#2e7d32,color:#000
+    style Embedding fill:#c8e6c9,stroke:#2e7d32,color:#000
+    style Storage fill:#c8e6c9,stroke:#2e7d32,color:#000
+    style End fill:#fff9c4,stroke:#fbc02d,color:#000
 ```
 
 ---
