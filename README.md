@@ -122,158 +122,123 @@ Combines complementary search strategies:
 **High-Level Flow:**
 ```mermaid
 flowchart TD
-    subgraph Client ["CLIENT (Next.js)"]
-        UploadUI["PDF Upload UI"]
-        ChatUI["Chat Interface"]
+    %% --- GLOBAL STYLES ---
+    classDef client fill:#e3f2fd,stroke:#1e88e5,stroke-width:2px,color:#000
+    classDef server fill:#f3e5f5,stroke:#8e24aa,stroke-width:2px,color:#000
+    classDef queue fill:#fff8e1,stroke:#fbc02d,stroke-width:2px,color:#000
+    classDef worker fill:#e8f5e9,stroke:#43a047,stroke-width:2px,color:#000
+    classDef db fill:#eceff1,stroke:#546e7a,stroke-width:2px,color:#000,shape:cylinder
+    classDef external fill:#fce4ec,stroke:#d81b60,stroke-width:2px,stroke-dasharray: 5 5,color:#000
+
+    %% --- NODES ---
+    subgraph Frontend [" CLIENT LAYER "]
+        direction TB
+        UploadUI["PDF Upload UI"]:::client
+        ChatUI["Chat Interface"]:::client
     end
 
-    subgraph Server ["EXPRESS API SERVER (Node.js)"]
-        UploadHandler["Upload Handler"]
-        ChatEndpoint["Chat Endpoint"]
+    subgraph Backend [" API LAYER "]
+        direction TB
+        UploadHandler["Upload Handler"]:::server
+        ChatEndpoint["Chat Endpoint"]:::server
     end
 
-    subgraph Queue ["BullMQ Queue (Redis)"]
-        Job["Job: Process PDF Document"]
+    subgraph Async [" ASYNC PROCESSING "]
+        direction TB
+        JobQueue[("BullMQ Queue\n(Redis)")]:::queue
+        WorkerNode["Worker Service"]:::worker
     end
 
-    subgraph Worker ["Worker Process"]
-        ProcessPDF["1. Load PDF\n2. Split Text\n3. Generate Embeddings\n4. Store Vectors"]
+    subgraph Data [" DATA LAYER "]
+        direction TB
+        VectorDB[("Qdrant Vector DB\n(Vectors + Metadata)")]:::db
     end
 
-    subgraph RAG ["RAG Pipeline (LangChain)"]
-        RAGSteps["1. Retrieve History\n2. Contextualize Question\n3. Hybrid Search\n4. Generate Response"]
+    subgraph AI [" INTELLIGENCE "]
+        Gemini["Google Gemini\n(Embeddings + LLM)"]:::external
     end
 
-    subgraph VectorDB ["Qdrant Vector Database"]
-        QdrantData["Collection: pdf-docs\nVectors: 768 dimensions\nMetadata: page, source"]
-    end
+    %% --- CONNECTIONS ---
+    UploadUI -->|1. POST File| UploadHandler
+    ChatUI -->|1. POST Message| ChatEndpoint
 
-    subgraph External ["External Services"]
-        Supabase["Supabase Auth\n(User Sessions)"]
-        Gemini["Google Gemini\n(LLM + Embeddings)"]
-    end
+    UploadHandler -->|2. Enqueue Job| JobQueue
+    JobQueue -->|3. Pick up Job| WorkerNode
+    
+    WorkerNode -->|4. Generate Embeddings| Gemini
+    WorkerNode -->|5. Store Vectors| VectorDB
 
-    UploadUI -->|POST /upload/pdf| UploadHandler
-    ChatUI -->|POST /chat| ChatEndpoint
+    ChatEndpoint -->|2. RAG Query| VectorDB
+    VectorDB -->|3. Return Context| ChatEndpoint
+    ChatEndpoint -->|4. Generate Answer| Gemini
+    Gemini -->|5. Response| ChatEndpoint
 
-    UploadHandler -->|Add Job| Job
-    Job -->|Process| ProcessPDF
-    ProcessPDF -->|Store Vectors|VectorDB
-
-    ChatEndpoint -->|Query| RAGSteps
-    RAGSteps -->|Query Vectors| VectorDB
-    VectorDB -->|Return Vectors| RAGSteps
-    RAGSteps -->|Generate Response| Gemini
-
-    Server -->|Auth| Supabase
-    Server -->|Embeddings/LLM| Gemini
-    ProcessPDF -->|Embeddings| Gemini
-
-    %% Added 'color:#000000' to force black text for high contrast
+    %% --- LINK STYLES ---
+    linkStyle default stroke:#607d8b,stroke-width:1px
 ```
 
 ### RAG Query Pipeline
 ```mermaid
 flowchart TD
-    subgraph Input ["User Input"]
-        Question["USER QUESTION\n'What is the Q3 revenue?'"]
+    %% --- STYLES ---
+    classDef start fill:#e1f5fe,stroke:#0277bd,stroke-width:2px,color:#000,rx:10,ry:10
+    classDef decision fill:#fff9c4,stroke:#fbc02d,stroke-width:2px,color:#000,rx:5,ry:5,shape:diamond
+    classDef process fill:#f3e5f5,stroke:#8e24aa,stroke-width:2px,color:#000
+    classDef search fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px,color:#000
+    classDef result fill:#ffebee,stroke:#c62828,stroke-width:2px,color:#000,rx:10,ry:10
+
+    UserQuery("User Question"):::start --> SessionCheck{{"Session ID?"}}:::decision
+
+    SessionCheck -->|Yes| History["Fetch Chat History"]:::process
+    SessionCheck -->|No| RawQuery["Use Raw Query"]:::process
+
+    History --> Contextualize["LLM Rewrite:<br/>'Resolve Pronouns'"]:::process
+    Contextualize --> HybridRouter{{"Search Strategy"}}:::decision
+    RawQuery --> HybridRouter
+
+    subgraph Retrieval [" HYBRID RETRIEVAL CORE "]
+        direction TB
+        HybridRouter -->|Keyword| BM25["BM25 Search<br/>(Exact Matches)"]:::search
+        HybridRouter -->|Semantic| Vector["Vector Search<br/>(Meaning)"]:::search
+        
+        BM25 --> Merger["RRF Fusion<br/>(Weighted Merge)"]:::process
+        Vector --> Merger
     end
 
-    subgraph Preprocessing ["Query Preprocessing"]
-        CheckSession["Check Session ID"]
-        HasHistory{{"Has Chat History?"}}
-        Contextualize["Contextualize\nQuestion w/LLM"]
-        UseOriginal["Use Original\nQuestion"]
-    end
+    Merger --> ParentDoc["Parent Document Lookup<br/>(Expand Context)"]:::process
+    ParentDoc --> LLM["Gemini 1.5 Pro<br/>(Generation)"]:::process
+    
+    LLM --> FinalResponse("Final Answer<br/>+ Source Citations"):::result
 
-    subgraph Retrieval ["HYBRID RETRIEVER (Ensemble Search)"]
-        BM25["BM25 Search\n(Keywords)\n• Exact match\n• Token-based"]
-        VectorSearch["Vector Search\n(Semantic)\n• Cosine sim.\n• Embeddings"]
-        Merge["MERGE RESULTS\n(Top 10 chunks)"]
-    end
-
-    subgraph PostRetrieval ["Post-Retrieval Optimization"]
-        ParentDoc["PARENT DOCUMENT\nLOOKUP (Optional)\nSmall chunk IDs\n↓\nLarge parent docs"]
-        ContextAssembly["CONTEXT ASSEMBLY\n• Chat history\n• Retrieved chunks\n• Metadata"]
-    end
-
-    subgraph Generation ["Generation & Output"]
-        LLM["LLM GENERATION\n(Gemini 2.5)\nPrompt:\n'Answer using only\nprovided context'"]
-        Response["RESPONSE + CITATIONS\n'Q3 revenue is $5M'\n[Source: Page 14]"]
-        UpdateHistory["UPDATE HISTORY\nStore in Memory"]
-    end
-
-    Question --> CheckSession
-    CheckSession --> HasHistory
-    HasHistory -->|YES| Contextualize
-    HasHistory -->|NO| UseOriginal
-    Contextualize --> BM25
-    Contextualize --> VectorSearch
-    UseOriginal --> BM25
-    UseOriginal --> VectorSearch
-
-    BM25 -->|"Weight: 0.4"| Merge
-    VectorSearch -->|"Weight: 0.6"| Merge
-    Merge --> ParentDoc
-    ParentDoc --> ContextAssembly
-    ContextAssembly --> LLM
-    LLM --> Response
-    Response --> UpdateHistory
-
-    %% --- STYLING ---
-    %% 1. Force all unstyled nodes (LLM, Question, etc) to have Black Text & White BG
-    classDef default fill:#fff,stroke:#333,stroke-width:1px,color:#000
-
-    %% 2. Your custom styles with color:#000 added
-    style Input fill:#e3f2fd,stroke:#1565c0,color:#000
-    style Preprocessing fill:#f3e5f5,stroke:#6a1b9a,color:#000
-    style Retrieval fill:#e8f5e9,stroke:#2e7d32,color:#000
-    style PostRetrieval fill:#fffde7,stroke:#f9a825,color:#000
-    style Generation fill:#ffebee,stroke:#c62828,color:#000
-    style BM25 fill:#c8e6c9,stroke:#1b5e20,color:#000
-    style VectorSearch fill:#c8e6c9,stroke:#1b5e20,color:#000
+    %% --- LINK STYLES ---
+    linkStyle default stroke:#546e7a,stroke-width:1.5px
 ```
 
 ### Document Processing Pipeline
 ```mermaid
-flowchart TD
-    subgraph InitialHandling ["Initial Handling"]
-        Start["PDF UPLOADED\n'annual_report.pdf'"]
-        Save["Save to /uploads\nGenerate Job ID"]
-        Queue["Add to BullMQ Queue\nJob: { path: '...', filename: '...' }"]
+flowchart LR
+    %% --- STYLES ---
+    classDef file fill:#fff3e0,stroke:#ef6c00,stroke-width:2px,color:#000
+    classDef process fill:#e0f2f1,stroke:#00695c,stroke-width:2px,color:#000,rx:5,ry:5
+    classDef model fill:#f3e5f5,stroke:#7b1fa2,stroke-width:2px,color:#000
+    classDef db fill:#eceff1,stroke:#455a64,stroke-width:2px,color:#000,shape:cylinder
+
+    Input("PDF File"):::file --> Loader["PDF Loader<br/>(Extract Text)"]:::process
+    
+    Loader --> Splitter["Text Splitter<br/>(Chunk: 1000, Overlap: 200)"]:::process
+    
+    Splitter --> Batcher["Batcher"]:::process
+    
+    subgraph Transformation [" AI Transformation "]
+        Batcher --> Embedder["Gemini Embeddings"]:::model
     end
 
-    subgraph WorkerProcessing ["Worker Processing"]
-        Worker["Worker Picks Up\nJob from Queue"]
-        Loader["PDF LOADER\n(LangChain)\n• Parse PDF structure\n• Extract text per page\n• Preserve metadata"]
-        Splitter["TEXT SPLITTER\n(RecursiveCharacter)\nConfig:\n• Chunk size: 500 tokens\n• Overlap: 50 tokens\n• Separators: ['\n\n', '\n', ' ']"]
-        Embedding["EMBEDDING GENERATION\n(Google Gemini)\nFor each chunk:\n• text-embedding-004\n• Output: 768-dim vector\nBatch processing (10/req)"]
-        Storage["VECTOR STORAGE\n(Qdrant)\nFor each chunk:\n{ id: uuid(), vector: [...], payload: { text: '...', page: 14, source: '...' } }"]
-    end
+    Embedder --> Vector["Vectors (768d)"]:::file
+    
+    Vector --> Storage[("Qdrant DB")]:::db
 
-    End["Index Complete\nNotify Frontend"]
-
-    Start --> Save
-    Save --> Queue
-    Queue --> Worker
-    Worker --> Loader
-    Loader -->|"Raw text + metadata"| Splitter
-    Splitter -->|"Array of chunks"| Embedding
-    Embedding -->|"Chunks + embeddings"| Storage
-    Storage --> End
-
-    %% Added color:#000 to all styles below to force black text
-    style InitialHandling fill:#e3f2fd,stroke:#1565c0,color:#000
-    style WorkerProcessing fill:#f3e5f5,stroke:#6a1b9a,color:#000
-    style Start fill:#bbdefb,stroke:#1565c0,color:#000
-    style Save fill:#bbdefb,stroke:#1565c0,color:#000
-    style Queue fill:#e1bee7,stroke:#6a1b9a,color:#000
-    style Worker fill:#e1bee7,stroke:#6a1b9a,color:#000
-    style Loader fill:#c8e6c9,stroke:#2e7d32,color:#000
-    style Splitter fill:#c8e6c9,stroke:#2e7d32,color:#000
-    style Embedding fill:#c8e6c9,stroke:#2e7d32,color:#000
-    style Storage fill:#c8e6c9,stroke:#2e7d32,color:#000
-    style End fill:#fff9c4,stroke:#fbc02d,color:#000
+    %% --- LINK STYLES ---
+    linkStyle default stroke:#455a64,stroke-width:1.5px,curve:basis
 ```
 
 ---
