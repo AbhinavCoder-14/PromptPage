@@ -121,126 +121,142 @@ Combines complementary search strategies:
 
 **High-Level Flow:**
 ```mermaid
-flowchart TD
-    %% --- GLOBAL STYLES ---
-    classDef client fill:#e3f2fd,stroke:#1e88e5,stroke-width:2px,color:#000
-    classDef server fill:#f3e5f5,stroke:#8e24aa,stroke-width:2px,color:#000
-    classDef queue fill:#fff8e1,stroke:#fbc02d,stroke-width:2px,color:#000
-    classDef worker fill:#e8f5e9,stroke:#43a047,stroke-width:2px,color:#000
-    classDef db fill:#eceff1,stroke:#546e7a,stroke-width:2px,color:#000,shape:cylinder
-    classDef external fill:#fce4ec,stroke:#d81b60,stroke-width:2px,stroke-dasharray: 5 5,color:#000
-
-    %% --- NODES ---
-    subgraph Frontend [" CLIENT LAYER "]
-        direction TB
-        UploadUI["PDF Upload UI"]:::client
-        ChatUI["Chat Interface"]:::client
-    end
-
-    subgraph Backend [" API LAYER "]
-        direction TB
-        UploadHandler["Upload Handler"]:::server
-        ChatEndpoint["Chat Endpoint"]:::server
-    end
-
-    subgraph Async [" ASYNC PROCESSING "]
-        direction TB
-        JobQueue[("BullMQ Queue\n(Redis)")]:::queue
-        WorkerNode["Worker Service"]:::worker
-    end
-
-    subgraph Data [" DATA LAYER "]
-        direction TB
-        VectorDB[("Qdrant Vector DB\n(Vectors + Metadata)")]:::db
-    end
-
-    subgraph AI [" INTELLIGENCE "]
-        Gemini["Google Gemini\n(Embeddings + LLM)"]:::external
-    end
-
-    %% --- CONNECTIONS ---
-    UploadUI -->|1. POST File| UploadHandler
-    ChatUI -->|1. POST Message| ChatEndpoint
-
-    UploadHandler -->|2. Enqueue Job| JobQueue
-    JobQueue -->|3. Pick up Job| WorkerNode
+graph TB
+    %% Styling
+    classDef userLayer fill:#667eea,stroke:#764ba2,stroke-width:3px,color:#fff,font-weight:bold
+    classDef apiLayer fill:#f093fb,stroke:#f5576c,stroke-width:3px,color:#fff,font-weight:bold
+    classDef processLayer fill:#4facfe,stroke:#00f2fe,stroke-width:3px,color:#fff,font-weight:bold
+    classDef dataLayer fill:#43e97b,stroke:#38f9d7,stroke-width:3px,color:#000,font-weight:bold
+    classDef aiLayer fill:#fa709a,stroke:#fee140,stroke-width:3px,color:#fff,font-weight:bold
     
-    WorkerNode -->|4. Generate Embeddings| Gemini
-    WorkerNode -->|5. Store Vectors| VectorDB
-
-    ChatEndpoint -->|2. RAG Query| VectorDB
-    VectorDB -->|3. Return Context| ChatEndpoint
-    ChatEndpoint -->|4. Generate Answer| Gemini
-    Gemini -->|5. Response| ChatEndpoint
-
-    %% --- LINK STYLES ---
-    linkStyle default stroke:#607d8b,stroke-width:1px
+    %% User Interface Layer
+    subgraph UI[" USER INTERFACE"]
+        U1[ PDF Upload]:::userLayer
+        U2[ Chat Interface]:::userLayer
+    end
+    
+    %% API Layer
+    subgraph API[" API GATEWAY"]
+        A1[ Upload Endpoint<br/>/upload/pdf]:::apiLayer
+        A2[ Chat Endpoint<br/>/chat]:::apiLayer
+    end
+    
+    %% Processing Layer
+    subgraph PROC[" ASYNC PROCESSING"]
+        P1[( Redis Queue<br/>BullMQ)]:::processLayer
+        P2[ Background Worker<br/>PDF Processor]:::processLayer
+        P3[ Text Splitter<br/>500 tokens/chunk]:::processLayer
+    end
+    
+    %% Data Layer
+    subgraph DATA[" VECTOR DATABASE"]
+        D1[( Qdrant<br/>768-dim vectors)]:::dataLayer
+        D2[ Embeddings Store<br/>Semantic Index]:::dataLayer
+    end
+    
+    %% AI Layer
+    subgraph AI[" AI INTELLIGENCE"]
+        AI1[ Gemini Embeddings<br/>text-embedding-004]:::aiLayer
+        AI2[ Gemini 2.5 Flash<br/>Response Generation]:::aiLayer
+        AI3[ Conversation Memory<br/>Session Management]:::aiLayer
+    end
+    
+    %% Connections - Upload Flow
+    U1 -->|1. User uploads PDF| A1
+    A1 -->|2. Enqueue job| P1
+    P1 -->|3. Worker picks up| P2
+    P2 -->|4. Extract & split| P3
+    P3 -->|5. Generate embeddings| AI1
+    AI1 -->|6. Store vectors| D1
+    D1 -.->|Indexed| D2
+    
+    %% Connections - Chat Flow
+    U2 -->|1. User asks question| A2
+    A2 -->|2. Check history| AI3
+    AI3 -->|3. Contextualize query| AI2
+    A2 -->|4. Semantic search| D2
+    D2 -->|5. Return top-10 chunks| A2
+    A2 -->|6. Generate answer| AI2
+    AI2 -->|7. Stream response| U2
+    AI2 -.->|Update history| AI3
+    
+    %% Labels
+    U1 -.->|React + Tailwind| UI
+    D1 -.->|Port 6333| DATA
+    P1 -.->|Port 6379| PROC
 ```
 
 ### RAG Query Pipeline
 ```mermaid
-flowchart TD
-    %% --- STYLES ---
-    classDef start fill:#e1f5fe,stroke:#0277bd,stroke-width:2px,color:#000,rx:10,ry:10
-    classDef decision fill:#fff9c4,stroke:#fbc02d,stroke-width:2px,color:#000,rx:5,ry:5,shape:diamond
-    classDef process fill:#f3e5f5,stroke:#8e24aa,stroke-width:2px,color:#000
-    classDef search fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px,color:#000
-    classDef result fill:#ffebee,stroke:#c62828,stroke-width:2px,color:#000,rx:10,ry:10
-
-    UserQuery("User Question"):::start --> SessionCheck{{"Session ID?"}}:::decision
-
-    SessionCheck -->|Yes| History["Fetch Chat History"]:::process
-    SessionCheck -->|No| RawQuery["Use Raw Query"]:::process
-
-    History --> Contextualize["LLM Rewrite:<br/>'Resolve Pronouns'"]:::process
-    Contextualize --> HybridRouter{{"Search Strategy"}}:::decision
-    RawQuery --> HybridRouter
-
-    subgraph Retrieval [" HYBRID RETRIEVAL CORE "]
-        direction TB
-        HybridRouter -->|Keyword| BM25["BM25 Search<br/>(Exact Matches)"]:::search
-        HybridRouter -->|Semantic| Vector["Vector Search<br/>(Meaning)"]:::search
-        
-        BM25 --> Merger["RRF Fusion<br/>(Weighted Merge)"]:::process
-        Vector --> Merger
-    end
-
-    Merger --> ParentDoc["Parent Document Lookup<br/>(Expand Context)"]:::process
-    ParentDoc --> LLM["Gemini 1.5 Pro<br/>(Generation)"]:::process
+graph TB
+    %% Styling
+    classDef input fill:#667eea,stroke:#764ba2,stroke-width:2px,color:#fff
+    classDef process fill:#f093fb,stroke:#f5576c,stroke-width:2px,color:#fff
+    classDef search fill:#4facfe,stroke:#00f2fe,stroke-width:2px,color:#fff
+    classDef output fill:#43e97b,stroke:#38f9d7,stroke-width:2px,color:#000
     
-    LLM --> FinalResponse("Final Answer<br/>+ Source Citations"):::result
-
-    %% --- LINK STYLES ---
-    linkStyle default stroke:#546e7a,stroke-width:1.5px
+    START([ User Question]):::input
+    
+    START --> CHECK{Has Session<br/>History?}
+    
+    CHECK -->|Yes| HISTORY[ Load Conversation<br/>Context]:::process
+    CHECK -->|No| DIRECT[ Use Question<br/>Directly]:::process
+    
+    HISTORY --> REWRITE[ LLM Contextualizes<br/>Resolves pronouns]:::process
+    DIRECT --> SEARCH
+    REWRITE --> SEARCH
+    
+    subgraph RETRIEVAL[" HYBRID SEARCH ENGINE"]
+        SEARCH[ Parallel Search]:::search
+        SEARCH --> BM25[ BM25 Keyword<br/>Exact matching]:::search
+        SEARCH --> VECTOR[ Vector Similarity<br/>Semantic meaning]:::search
+        
+        BM25 --> MERGE[ Score Fusion<br/>RRF Algorithm]:::search
+        VECTOR --> MERGE
+    end
+    
+    MERGE --> TOP10[ Top 10 Chunks<br/>Retrieved]:::process
+    
+    TOP10 --> CONTEXT[ Build Context<br/>+ Chat History]:::process
+    
+    CONTEXT --> LLM[ Gemini 2.5 Flash<br/>Generate Answer]:::process
+    
+    LLM --> RESPONSE([ Structured Response<br/>+ Citations]):::output
+    
+    RESPONSE -.->|Save| MEMORY[( Session Store)]:::process
 ```
 
 ### Document Processing Pipeline
 ```mermaid
-flowchart LR
-    %% --- STYLES ---
-    classDef file fill:#fff3e0,stroke:#ef6c00,stroke-width:2px,color:#000
-    classDef process fill:#e0f2f1,stroke:#00695c,stroke-width:2px,color:#000,rx:5,ry:5
-    classDef model fill:#f3e5f5,stroke:#7b1fa2,stroke-width:2px,color:#000
-    classDef db fill:#eceff1,stroke:#455a64,stroke-width:2px,color:#000,shape:cylinder
-
-    Input("PDF File"):::file --> Loader["PDF Loader<br/>(Extract Text)"]:::process
+graph LR
+    %% Styling
+    classDef phase1 fill:#667eea,stroke:#764ba2,stroke-width:3px,color:#fff
+    classDef phase2 fill:#f093fb,stroke:#f5576c,stroke-width:3px,color:#fff
+    classDef storage fill:#43e97b,stroke:#38f9d7,stroke-width:3px,color:#000
     
-    Loader --> Splitter["Text Splitter<br/>(Chunk: 1000, Overlap: 200)"]:::process
-    
-    Splitter --> Batcher["Batcher"]:::process
-    
-    subgraph Transformation [" AI Transformation "]
-        Batcher --> Embedder["Gemini Embeddings"]:::model
+    subgraph PHASE1["📤 PHASE 1: INDEXING"]
+        P1A[PDF Upload]:::phase1
+        P1B[Extract Text]:::phase1
+        P1C[Chunk Documents]:::phase1
+        P1D[Generate Embeddings]:::phase1
+        P1E[Store Vectors]:::phase1
+        
+        P1A --> P1B --> P1C --> P1D --> P1E
     end
-
-    Embedder --> Vector["Vectors (768d)"]:::file
     
-    Vector --> Storage[("Qdrant DB")]:::db
-
-    %% --- LINK STYLES ---
-    linkStyle default stroke:#455a64,stroke-width:1.5px,curve:basis
+    subgraph PHASE2["💬 PHASE 2: RETRIEVAL"]
+        P2A[User Question]:::phase2
+        P2B[Search Vectors]:::phase2
+        P2C[Retrieve Context]:::phase2
+        P2D[Generate Answer]:::phase2
+        P2E[Return Response]:::phase2
+        
+        P2A --> P2B --> P2C --> P2D --> P2E
+    end
+    
+    P1E -.->|Indexed Data| DB[(Qdrant<br/>Vector DB)]:::storage
+    DB -.->|Query| P2B
 ```
-
 ---
 
 ## Installation
