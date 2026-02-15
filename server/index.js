@@ -33,7 +33,7 @@ const queue = new Queue("file-upload", {
 
 const storage = multer.diskStorage({
   destination: function (req, file, cb) {
-    cb(null, "uploads/");
+    cb(null, "E:/Code/Rag-application/server/uploads");
   },
   filename: function (req, file, cb) {
     const uniqueSufffix = Date.now() + "-" + Math.round(Math.random() * 1e9);
@@ -64,7 +64,7 @@ app.post("/chat", async (req, res) => {
   const query = ques || "what is string?";
 
   const embedding = new GoogleGenerativeAIEmbeddings({
-    model: "text-embedding-004",
+    model: "gemini-embedding-001",
     apiKey: process.env.GEMINI_API_KEY2,
   });
 
@@ -171,6 +171,7 @@ app.post("/upload/pdf", upload.single("pdf"), async (req, res) => {
   });
 
   console.log("upload the given pdf file :)");
+  console.log(process.env)
 });
 
 app.listen(8000, () => {

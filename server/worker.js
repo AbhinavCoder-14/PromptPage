@@ -13,13 +13,13 @@ import { text } from "stream/consumers";
 const worker = new Worker(
   "file-upload",
   async (job) => {
-    console.log("enterd in worker");
-
+    console.log("enterd in worker 2");
+    
     try {
       const loader = new PDFLoader(job.data.path);
       const docs = await loader.load();
       console.log(docs);
-
+      
       const textsplitters = new RecursiveCharacterTextSplitter({
         chunkSize: 500,
         chunkOverlap: 50,
@@ -30,10 +30,9 @@ const worker = new Worker(
       console.log("Job:", job.data);
 
       const embedding = new GoogleGenerativeAIEmbeddings({
-        model: "text-embedding-004",
-        apiKey: process.env.GEMINI_API_KEY,
+        model: "gemini-embedding-001",
       });
-
+      
       const vectorStore = await QdrantVectorStore.fromExistingCollection(
         embedding,
         {
@@ -41,12 +40,15 @@ const worker = new Worker(
           collectionName: "pdf-docs",
         }
       );
-
-      await vectorStore.addDocuments(texts);
+      
+      const vectors = await vectorStore.addDocuments(texts);
+      console.log("Vectors:", vectors);
+      console.log("Vector length:", vectors?.[0]?.length);
 
       console.log("Success: All chunks added to vector database.");
     } catch (err) {
       console.log(err);
+
     }
   },
   {
