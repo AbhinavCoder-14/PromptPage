@@ -174,6 +174,16 @@ app.post("/upload/pdf", upload.single("pdf"), async (req, res) => {
   console.log(process.env)
 });
 
+
+
+
+
+
+
+
+
+
+
 app.listen(8000, () => {
   console.log("server started...");
 });

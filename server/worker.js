@@ -101,7 +101,7 @@ console.log("✅✅✅ SUCCESS! All documents added");
       }, waitTime))
 
       }
-      console.error("❌ ERROR:", err.message);
+      console.error("ERROR:", err.message);
       console.error("Stack:", err.stack);
       throw err;
     }
