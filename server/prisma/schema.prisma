@@ -13,7 +13,52 @@ datasource db {
 }
 
 
+model User {
+  id             String          @id @default(uuid())
+  email          String          @unique
 
+  consentRecords Consent_Records[]
+  consentEvents Consent_Event[]
+}
+
+
+model Consent_Records {
+
+  id     String  @id @default(cuid())
+  userId String @unique
+  user   User @relation(fields: [userId], references: [id])
+  analytics Boolean @default(false)
+  marketing Boolean @default(false)
+  personalization Boolean @default(false)
+
+  policyVersion   String
+  region          String
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+
+
+  @@map("consent_records")
+
+}
+
+
+
+
+model Consent_Event {
+  id   String @id @default(uuid())
+  userId String
+  user User @relation(fields: [userId], references: [id])
+
+
+  oldPreferences Json
+  newPreferences Json
+
+  policyVersion String
+  createdAt DateTime @default(now())
+
+  @@map("consent_events")
+
+}
 
 
 
