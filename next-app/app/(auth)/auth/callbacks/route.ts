@@ -7,6 +7,11 @@ export async function GET(request: NextRequest) {
   const code = searchParams.get("code");
   // if "next" is in param, use it as the redirect URL
   const next = searchParams.get("next") ?? "/";
+  const oauthError = searchParams.get("error_description") ?? searchParams.get("error");
+
+  if (oauthError) {
+    return NextResponse.redirect(`${origin}/error?reason=${encodeURIComponent(oauthError)}`);
+  }
 
   if (code) {
     const supabase = await createClient();
@@ -14,8 +19,14 @@ export async function GET(request: NextRequest) {
     if (!error) {
       return NextResponse.redirect(`${origin}${next}`);
     }
+
+    return NextResponse.redirect(
+      `${origin}/error?reason=${encodeURIComponent(error.message)}`
+    );
   }
 
   // return the user to an error page with instructions
-  return NextResponse.redirect(`${origin}/error`);
+  return NextResponse.redirect(
+    `${origin}/error?reason=${encodeURIComponent("Missing OAuth code or provider error.")}`
+  );
 }

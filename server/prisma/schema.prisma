@@ -17,7 +17,7 @@ model User {
   id             String          @id @default(uuid())
   email          String          @unique
 
-  consentRecords Consent_Records[]
+  consentRecords Consent_Records?
   consentEvents Consent_Event[]
 }
 
@@ -47,8 +47,8 @@ model Consent_Records {
 model Consent_Event {
   id   String @id @default(uuid())
   userId String
-  user User @relation(fields: [userId], references: [id])
 
+  user User @relation(fields: [userId], references: [id])
 
   oldPreferences Json
   newPreferences Json

@@ -8,9 +8,7 @@ import { Button } from "./ui/button"
 
 const SigninWithGoogleButton = () =>{
     return(
-        <Button type="button" variant='outline' className="w-full" onClick={()=>{
-            signInWithGoogle();
-        }}>
+        <Button type="submit" formAction={signInWithGoogle} variant='outline' className="w-full">
             Login with Google
         </Button>
     )
