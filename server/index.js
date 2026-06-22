@@ -14,10 +14,13 @@ import { ChatPromptTemplate, MessagesPlaceholder } from "@langchain/core/prompts
 
 import { RunnableSequence,RunnablePassthrough } from "@langchain/core/runnables";
 import { StringOutputParser } from "@langchain/core/output_parsers";
+import consentRoute from "./modules/consent/consent.route";
 
 const app = express();
 app.use(cors());
 app.use(express.json());
+
+app.use("/api/consent",consentRoute)
 
 const client = new GoogleGenAI({
   apiKey: process.env.GEMINI_API_KEY2,
